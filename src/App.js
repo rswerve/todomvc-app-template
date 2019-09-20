@@ -8,10 +8,16 @@ class App extends Component {
     super(props);
     this.state = {
       todos: [],
-      inputValue: ""
+      inputValue: "",
+      currentlyEditing: "",
+      editingValue: ""
     };
     this.createNewTodo = this.createNewTodo.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.enableEditing = this.enableEditing.bind(this);
+    this.handleEdits = this.handleEdits.bind(this);
+    this.stopEditing = this.stopEditing.bind(this);
+    this.checkboxClicked = this.checkboxClicked.bind(this);
   }
   pluralize(todos) {
     return todos.length === 0 || todos.length > 1 ?
@@ -29,12 +35,30 @@ class App extends Component {
   createNewTodo(event) {
     if(event.key === "Enter" && event.target.value) {
       const updatedTodos = [{value: event.target.value.trim(), completed: false, id: this.generateId()}].concat(this.state.todos);
-      this.setState({todos: updatedTodos, inputValue: ""});
+      this.setState({todos: updatedTodos, inputValue: "", currentlyEditing: ""});
     }
   }
 
   handleChange(event) {
     this.setState({inputValue: event.target.value});
+  }
+
+  enableEditing(event) {
+    this.setState({currentlyEditing: event.target.attributes.value.value});
+  }
+
+  handleEdits(event) {}
+
+  stopEditing() {
+    this.setState({currentlyEditing: ""});
+  }
+
+  checkboxClicked(event) {
+    const todo = JSON.parse(event.target.value);
+    const completedTodo = Object.assign({}, todo, {completed: !todo.completed});
+    this.setState({
+      todos: this.state.todos.map(el => (el.id === todo.id ? completedTodo : el))
+    });
   }
 
   render() {
@@ -50,13 +74,16 @@ class App extends Component {
           <label htmlFor="toggle-all">Mark all as complete</label>
           <ul className="todo-list">
             {this.state.todos.map(todo =>
-            <li key={todo.id}>
+            <li key={todo.id}
+              className={this.state.currentlyEditing === todo.id ? "editing" : ""}
+              // eslint-disable-next-line react/jsx-no-duplicate-props
+              className={todo.completed ? "completed" : ""}>
               <div className="view">
-                <input className="toggle" type="checkbox" {...todo.completed && "checked"}/>
-                <label>{todo.value}</label>
+                <input onClick={this.checkboxClicked} value={JSON.stringify(todo)} className="toggle" type="checkbox" />
+                <label onDoubleClick={this.enableEditing} value={todo.id}>{todo.value}</label>
                 <button className="destroy"></button>
               </div>
-              {/* <input className="edit" value="Create a TodoMVC template" /> */}
+              <input onChange={this.handleEdits} onBlur={this.stopEditing}  className="edit" value={todo.value} />
             </li>
             )}
           </ul>

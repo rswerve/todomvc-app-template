@@ -10,7 +10,8 @@ class App extends Component {
       todos: [],
       inputValue: "",
       currentlyEditing: "",
-      editingValue: ""
+      editingValue: "",
+      currentlyShowing: "all"
     };
     this.createNewTodo = this.createNewTodo.bind(this);
     this.handleChange = this.handleChange.bind(this);
@@ -18,11 +19,27 @@ class App extends Component {
     this.handleEdits = this.handleEdits.bind(this);
     this.stopEditing = this.stopEditing.bind(this);
     this.checkboxClicked = this.checkboxClicked.bind(this);
+    this.removeTodo = this.removeTodo.bind(this);
+    this.currentlyShowing = this.currentlyShowing.bind(this);
+    this.toggleAll = this.toggleAll.bind(this);
   }
+
+  currentlyShowing() {
+    return this.state.todos.filter(todo => {
+      if (this.state.currentlyShowing === "all") {
+        return todo;
+      } else if (this.state.currentlyShowing === "completed") {
+        return todo.completed;
+      } else if (this.state.currentlyShowing === "active") {
+        return !todo.completed;
+      }
+    })
+  }
+
   pluralize(todos) {
-    return todos.length === 0 || todos.length > 1 ?
-      "items" :
-      "item";
+    return todos.filter(todo => !todo.completed).length === 1 ?
+      "task" :
+      "tasks";
   }
 
   generateId() {
@@ -53,12 +70,26 @@ class App extends Component {
     this.setState({currentlyEditing: ""});
   }
 
+  removeTodo(event) {
+    const todo = JSON.parse(event.target.value);
+    this.setState({
+      todos: this.state.todos.filter(el => el.id !== todo.id)
+    });
+  }
+
   checkboxClicked(event) {
     const todo = JSON.parse(event.target.value);
     const completedTodo = Object.assign({}, todo, {completed: !todo.completed});
     this.setState({
       todos: this.state.todos.map(el => (el.id === todo.id ? completedTodo : el))
     });
+  }
+
+  toggleAll() {
+    const isEveryTodoCompleted = this.state.todos.every(todo => todo.completed);
+    const newTodoStatus = isEveryTodoCompleted ? false : true;
+    const todos = this.state.todos.map(todo => Object.assign({}, todo, {completed: newTodoStatus}));
+    this.setState({todos});
   }
 
   render() {
@@ -70,18 +101,18 @@ class App extends Component {
         </header>
   
         <section className="main">
-          <input id="toggle-all" className="toggle-all" type="checkbox" />
+          <input onClick={this.toggleAll} id="toggle-all" className="toggle-all" type="checkbox" />
           <label htmlFor="toggle-all">Mark all as complete</label>
           <ul className="todo-list">
-            {this.state.todos.map(todo =>
+            {this.currentlyShowing().map(todo =>
             <li key={todo.id}
               className={this.state.currentlyEditing === todo.id ? "editing" : ""}
               // eslint-disable-next-line react/jsx-no-duplicate-props
               className={todo.completed ? "completed" : ""}>
               <div className="view">
-                <input onClick={this.checkboxClicked} value={JSON.stringify(todo)} className="toggle" type="checkbox" />
+                <input onClick={this.checkboxClicked} checked={todo.completed} value={JSON.stringify(todo)} className="toggle" type="checkbox" />
                 <label onDoubleClick={this.enableEditing} value={todo.id}>{todo.value}</label>
-                <button className="destroy"></button>
+                <button onClick={this.removeTodo} value={JSON.stringify(todo)} className="destroy"></button>
               </div>
               <input onChange={this.handleEdits} onBlur={this.stopEditing}  className="edit" value={todo.value} />
             </li>
@@ -90,8 +121,8 @@ class App extends Component {
         </section>
 
         <footer className="footer">
-          <span className="todo-count">{this.state.todos.length} {this.pluralize(this.state.todos)} left</span>
-          <ul className="filters">
+          <span className="todo-count">{this.state.todos.filter(item => !item.completed).length} {this.pluralize(this.state.todos)} to do</span>
+          {/* <ul className="filters">
           <li>
               <a className="selected" href="#/">All</a>
             </li>
@@ -101,7 +132,7 @@ class App extends Component {
             <li>
               <a href="#/completed">Completed</a>
             </li>
-          </ul>
+          </ul> */}
         </footer>
       </section>
     );
